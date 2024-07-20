@@ -1,0 +1,67 @@
+version: '3'  
+services:  
+  redis:  
+    image: redis:6
+    container_name: redis_single
+    restart: unless-stopped
+    ports:  
+      - "6379:6379"
+    volumes:
+      - ~/.redis_data:/data
+     # - ./redis.conf:/usr/local/etc/redis/redis.conf  # 如果需要自定义Redis配置，可以将配置文件挂载到容器内  
+     #command: redis-server /usr/local/etc/redis/redis.conf  # 指定容器启动时执行的命令，如果挂载了配置文件，则使用此命令
+  mongo:
+    image: mongo:latest
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    volumes:
+      - ~/.mongodata:/data/db
+  kafka:
+    # image: docker.io/bitnami/kafka:3.5
+    image: bitnami/kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - "~/kafka_data:/bitnami"
+    hostname: local.kafka.com
+    environment:
+      # KRaft settings 
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners 
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    restart: unless-stopped
+    # SASL 认证: 在配置文件末尾添加如下配置：
+    # 修改listeners
+    # listeners=SASL_PLAINTEXT://:9092
+    # # 权限配置
+    # authorizer.class.name=kafka.security.auth.SimpleAclAuthorizer
+    # security.inter.broker.protocol=SASL_PLAINTEXT
+    # sasl.mechanism.inter.broker.protocol=PLAIN
+    # sasl.enabled.mechanisms=PLAIN
+
+    # super.users=User:admin
+
+    #     #
+  kafka-map:
+    image: dushixiang/kafka-map
+    container_name: kafka-map
+    environment:
+      - DEFAULT_USERNAME=admin
+      - DEFAULT_PASSWORD=admin
+      - SERVER_PORT=8080
+    ports:
+      - 29001:9000
+      - 29002:8080
+    # volumes:
+    # - ./minio.conf:/temp/redis-cluster.conf
+    restart: unless-stopped
